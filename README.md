@@ -103,7 +103,7 @@ Stack Too Deep resolution
 
 1. Clone the Repository
 
-git clone [https://github.com/YOUR_USERNAME/uniswap-auto-exit-bot.git](https://github.com/YOUR_USERNAME/uniswap-auto-exit-bot.git)
+git clone [https://github.com/pramod1503/AutoExitBot](https://github.com/pramod1503/AutoExitBot)
 cd uniswap-auto-exit-bot
 
 
@@ -142,26 +142,7 @@ Expected Output:
     ✅ Price dropped! Upkeep is now NEEDED.
     🚀 Triggering Auto-Exit...
     ✅ Bot exited and sent profit to owner!
-    ✔ Should execute the full Buy-Dip-Exit lifecycle
+    
 
 
-🚀 Deployment (Sepolia/Mainnet)
 
-To deploy this bot to a live network:
-
-Configure Environment
-Create a .env file in the root directory:
-
-SEPOLIA_RPC_URL="[https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY](https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY)"
-PRIVATE_KEY="YOUR_WALLET_PRIVATE_KEY"
-ETHERSCAN_API_KEY="YOUR_API_KEY"
-
-
-Run Deploy Script
-
-npx hardhat run scripts/deploy.ts --network sepolia
-
-
-Verify on Etherscan
-
-npx hardhat verify --network sepolia <DEPLOYED_ADDRESS> <MANAGER_ADDRESS> <FACTORY_ADDRESS>
