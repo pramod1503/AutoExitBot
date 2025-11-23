@@ -1,57 +1,167 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+🦄 Uniswap V3 Auto-Exit Sniper Bot
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+📖 Project Overview
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+This is a DeFi Automation System built on Uniswap V3 and Chainlink Automation (Keepers).
 
-## Project Overview
+It solves a critical problem for traders: "buying the dip" without needing to stay awake 24/7. The bot creates a concentrated liquidity position (Range Order) and automatically exits (withdraws to wallet) the moment the buy order is filled, preventing the "round-trip" loss that occurs if prices rebound while funds are still in the pool.
 
-This example project includes:
+🎯 Key Features
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+Atomic Execution: Minting, transfers, and approvals are handled in a single transaction.
 
-## Usage
+Gas Optimization: Implements viaIR optimization and struct packing to bypass EVM stack limits.
 
-### Running Tests
+Security First: Protected by ReentrancyGuard, SafeERC20, and Ownable patterns.
 
-To run all the tests in the project, execute the following command:
+Zero-Gas Monitoring: Uses Chainlink Automation to monitor price ticks off-chain, executing on-chain only when profitable.
 
-```shell
+🏗️ System Architecture
+
+The system consists of three distinct phases managed by the Smart Contract.
+
+Phase 1: The Setup (Minting)
+
+The user deposits USDC into the bot. The bot interacts with the Uniswap NonfungiblePositionManager to mint a single-sided liquidity position (Range Order) and holds the NFT receipt custodially.
+
+sequenceDiagram
+    participant User as 👨‍💻 User
+    participant Bot as 🤖 AutoExitBot
+    participant Uni as 🦄 Uniswap V3
+
+    User->>Bot: mintRangeOrder(3000 USDC)
+    activate Bot
+    Bot->>Uni: approve & mint()
+    Uni-->>Bot: 🎫 NFT ID #123
+    Bot->>Bot: Store State (Active = True)
+    deactivate Bot
+
+
+Phase 2: The Watchtower (Monitoring)
+
+Chainlink Automation nodes continuously simulate the checkUpkeep function off-chain. This function queries the Uniswap V3 Pool slot0 to check the current tick.
+
+Condition: Current Tick < Target Tick
+
+Result: If true, triggers Phase 3.
+
+Phase 3: The Exit (Execution)
+
+Once triggered, the bot executes the exit strategy in one atomic transaction:
+
+Burn: Calls decreaseLiquidity to remove 100% of position.
+
+Collect: Calls collect to harvest the converted ETH + Fees.
+
+Payout: Transfers all assets to the Owner's wallet using SafeTransfer.
+
+🛠️ Technical Stack
+
+Component
+
+Technology
+
+Purpose
+
+Language
+
+Solidity ^0.8.20
+
+Smart Contract Logic
+
+Framework
+
+Hardhat + TypeScript
+
+Development, Testing, Deployment
+
+Core Integration
+
+Uniswap V3 Periphery
+
+Liquidity Management & Minting
+
+Automation
+
+Chainlink Keepers
+
+Decentralized Trigger Mechanism
+
+Testing
+
+Chai, Ethers.js, Fast-Check
+
+Unit Testing & Fuzz Testing
+
+Optimization
+
+viaIR Pipeline
+
+Stack Too Deep resolution
+
+⚡ Installation & Setup
+
+1. Clone the Repository
+
+git clone [https://github.com/YOUR_USERNAME/uniswap-auto-exit-bot.git](https://github.com/YOUR_USERNAME/uniswap-auto-exit-bot.git)
+cd uniswap-auto-exit-bot
+
+
+2. Install Dependencies
+
+We use a specific set of versions to ensure compatibility between Hardhat v3 and Uniswap v3.
+
+npm install
+
+
+3. Compile Contracts
+
+Compiles the Solidity code and generates TypeChain bindings.
+
+npx hardhat compile
+
+
+🧪 Testing
+
+The project includes a robust testing suite using Mocks to simulate Mainnet conditions without forking.
+
+Running Unit Tests
+
+Simulates the full lifecycle: Mint -> Price Crash -> Auto Exit -> Profit Check.
+
 npx hardhat test
-```
 
-You can also selectively run the Solidity or `node:test` tests:
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
-```
+Expected Output:
 
-### Make a deployment to Sepolia
+  AutoExitBot System
+    1. Setting up position...
+    ✅ Position Minted successfully.
+    ✅ Price is high. Bot stays idle.
+    📉 Simulating market crash...
+    ✅ Price dropped! Upkeep is now NEEDED.
+    🚀 Triggering Auto-Exit...
+    ✅ Bot exited and sent profit to owner!
+    ✔ Should execute the full Buy-Dip-Exit lifecycle
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
 
-To run the deployment to a local chain:
+🚀 Deployment (Sepolia/Mainnet)
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
+To deploy this bot to a live network:
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+Configure Environment
+Create a .env file in the root directory:
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+SEPOLIA_RPC_URL="[https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY](https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY)"
+PRIVATE_KEY="YOUR_WALLET_PRIVATE_KEY"
+ETHERSCAN_API_KEY="YOUR_API_KEY"
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
+Run Deploy Script
 
-After setting the variable, you can run the deployment with the Sepolia network:
+npx hardhat run scripts/deploy.ts --network sepolia
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+
+Verify on Etherscan
+
+npx hardhat verify --network sepolia <DEPLOYED_ADDRESS> <MANAGER_ADDRESS> <FACTORY_ADDRESS>
